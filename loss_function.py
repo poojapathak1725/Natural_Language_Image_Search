@@ -1,24 +1,10 @@
 import torch
 import torch.nn as nn
 
-def dual_encoder_loss(predictions, targets):
-    cross_entropy = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean")
-    return (cross_entropy(predictions,targets) + cross_entropy(torch.transpose(predictions), torch.transpose(targets)))/2
-
-# place holders for image and text encodings got from encoders
-image_embedding = torch.Tensor([])
-text_embedding = torch.Tensor([])
-
-# calculating target values
-image_similarity = torch.matmul(image_embedding, torch.transpose(image_embedding))
-caption_similarity = torch.matmul(text_embedding, torch.transpose(text_embedding))
-target = nn.Softmax((caption_similarity+image_similarity)/2)
-
-# computing logits
-logits = torch.matmul(text_embedding, torch.transpose(image_embedding))
-
-# defining the loss function
-criterion = dual_encoder_loss
-
-loss = criterion(logits, target)
-print("Loss:", loss.item())
+class DualEncoderLoss(nn.Module):
+    def __init__(self):
+        super(DualEncoderLoss, self).__init__()
+        self.cross_entropy = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean")
+    
+    def forward(self,predictions,targets):
+        return (self.cross_entropy(predictions,targets) + self.cross_entropy(torch.transpose(predictions), torch.transpose(targets)))/2
