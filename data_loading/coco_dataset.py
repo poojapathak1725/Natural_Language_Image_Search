@@ -53,7 +53,7 @@ class CocoDataset(data.Dataset):
         caption = coco.anns[ann_id]['caption']
 #         import pdb; pdb.set_trace();
         img_id = coco.anns[ann_id]['image_id']
-        path = coco.loadImgs(img_id)[0]['file_name'];
+        path = coco.loadImgs(img_id)[0]['file_name']
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
         image = self.resize(image)
         image = self.normalize(np.asarray(image))

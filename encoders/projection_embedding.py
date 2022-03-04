@@ -4,19 +4,20 @@ import statistics
 import torchvision.models as models
 
 
-class Img_text_embeddings_shape_mapping(nn.Module):
-    def __int__(self, embeddings, num_projection_layers, projection_dims, dropout_rate):
-        super(Img_text_embeddings_shape_mapping, self).__init__()
+class ImgTextEmbeddings(nn.Module):
+    def __int__(self, projection_dims, dropout_rate, proj_layers):
+        super(ImgTextEmbeddings, self).__init__()
         self.Linear_unit = nn.Linear(projection_dims)
         self.Gelu = nn.GELU()
         self.Dense_unit = nn.Linear(projection_dims)
         self.dropout = nn.Dropout(dropout_rate)
         self.addition = nn.add()
         self.layer_norm = nn.LayerNorm()
+        self.projection_layers = proj_layers
 
-    def forward(self, embeddings, num_projection_layers, projection_dims, dropout_rate):
+    def forward(self, embeddings):
         embed_proj = self.Linear_unit(embeddings)
-        for _ in range(num_projection_layers):
+        for _ in range(self.projection_layers):
             x = self.Gelu(embed_proj)
             x = self.Dense_unit(x)
             x = self.dropout(x)
