@@ -3,7 +3,7 @@ import torch.nn as nn
 
 def dual_encoder_loss(predictions, targets):
     cross_entropy = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean")
-    return (cross_entropy(predictions) + cross_entropy(target))/2
+    return (cross_entropy(predictions,targets) + cross_entropy(torch.transpose(predictions), torch.transpose(targets)))/2
 
 # place holders for image and text encodings got from encoders
 image_embedding = torch.Tensor([])
