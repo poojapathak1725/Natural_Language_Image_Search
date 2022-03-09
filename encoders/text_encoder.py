@@ -33,7 +33,7 @@ class BERTEncoder(nn.Module):
         self.layer_norm = nn.LayerNorm(300)
 
     def forward(self, encoder_input_ids):
-        encoder_hidden_states = self.encoder(encoder_input_ids)[0]
+        encoder_hidden_states = self.encoder(encoder_input_ids)[1]
         
         import pdb; pdb.set_trace();
         

@@ -1,5 +1,5 @@
 from encoders.image_encoder import CNNEncoder
-from encoders.text_encoder import LSTMEncoder
+from encoders.text_encoder import BERTEncoder, LSTMEncoder
 from encoders.projection_embedding import ImgTextEmbeddings
 import torch.nn as nn
 import torch
@@ -8,7 +8,8 @@ import torch.nn.functional as F
 class DualEncoder(nn.Module):
     def __init__(self, configs) -> None:
         super().__init__()
-        self.text_encoder = LSTMEncoder(configs['vocab_size'])
+        # self.text_encoder = LSTMEncoder(configs['vocab_size'])
+        self.text_encoder = BERTEncoder()
         self.image_encoder = CNNEncoder()
 
     def forward(self, images, captions):
