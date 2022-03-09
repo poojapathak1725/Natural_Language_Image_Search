@@ -24,7 +24,6 @@ class Experiment():
             images = images.cuda()
             captions = captions.cuda()
             
-            import pdb; pdb.set_trace();
             
             for each_img_id in range(len(img_ids)):
                 caption_each_img = []

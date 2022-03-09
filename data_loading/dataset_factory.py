@@ -8,8 +8,8 @@ import csv, os
 from torch.utils.data import DataLoader
 from pycocotools.coco import COCO
 
-from vocab import *
-from coco_dataset import CocoDataset, collate_fn
+from .vocab import *
+from .coco_dataset import CocoDataset, collate_fn
 
 
 # Builds your datasets here based on the configuration.
@@ -32,14 +32,15 @@ def get_datasets(config_data):
     vocab_threshold = config_data['dataset']['vocabulary_threshold']
     vocabulary = load_vocab(train_annotation_file, vocab_threshold)
 
-    train_data_loader = get_coco_dataloader(train_ids_file_path, root_train, train_annotation_file, coco, vocabulary,
+    train_data_loader = get_coco_dataloader(train_ids_file_path, root_train, train_annotation_file, coco_train, vocabulary,
                                             config_data)
-#     import pdb; pdb.set_trace();
-    val_data_loader = get_coco_dataloader(val_ids_file_path, root_val, train_annotation_file, coco, vocabulary,
+
+    val_data_loader = get_coco_dataloader(val_ids_file_path, root_val, train_annotation_file, coco_train, vocabulary,
                                           config_data)
-    test_data_loader = get_coco_dataloader(test_ids_file_path, root_test, test_annotation_file, coco_test, vocabulary,
-                                           config_data)
-#     import pdb; pdb.set_trace();
+#     test_data_loader = get_coco_dataloader(test_ids_file_path, root_test, test_annotation_file, coco_test, vocabulary,
+#                                            config_data)
+    
+    test_data_loader = None
     return coco_train, coco_test, vocabulary, train_data_loader, val_data_loader, test_data_loader
 
 
@@ -53,15 +54,17 @@ def get_coco_dataloader(img_ids_file_path, imgs_root_dir, annotation_file_path, 
 
     ann_ids = [coco_obj.imgToAnns[img_ids[i]][j]['id'] for i in range(0, len(img_ids)) for j in
                range(0, len(coco_obj.imgToAnns[img_ids[i]]))]
-#     import pdb;pdb.set_trace();
+
     dataset = CocoDataset(root=imgs_root_dir,
                           json=annotation_file_path,
                           ids=ann_ids,
                           vocab=vocabulary,
                           img_size=config_data['dataset']['img_size'])
+    
     return DataLoader(dataset=dataset,
                       batch_size=config_data['dataset']['batch_size'],
                       shuffle=True,
                       #num_workers=config_data['dataset']['num_workers'],
                       collate_fn=collate_fn,
                       pin_memory=True)
+

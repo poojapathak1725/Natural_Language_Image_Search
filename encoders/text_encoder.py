@@ -25,25 +25,49 @@ class BERTEncoder(nn.Module):
         encoder_embeddings = torch.nn.Embedding(src_tokenizer.vocab_size, 256, padding_idx=src_tokenizer.pad_token_id)
         self.encoder = BertModel(encoder_config)
         self.encoder.set_input_embeddings(encoder_embeddings)
+        
+        self.Linear_unit = nn.Linear(256, 300)
+        self.Gelu = nn.GELU()
+        self.Dense_unit = nn.Linear(300, 300)
+        self.dropout = nn.Dropout(0.1)
+        self.layer_norm = nn.LayerNorm(300)
 
     def forward(self, encoder_input_ids):
         encoder_hidden_states = self.encoder(encoder_input_ids)[0]
-        return encoder_hidden_states
+        
+        import pdb; pdb.set_trace();
+        
+        embed_proj = self.Linear_unit(encoder_hidden_states)
+        
+        x = self.Gelu(embed_proj)
+        x = self.Dense_unit(x)
+        x = self.dropout(x)
+        x = torch.add(embed_proj, x)
+        embed_proj = self.layer_norm(x)
+        
+        
+        return embed_proj
 
 
 class LSTMEncoder(nn.Module):
-    def __init__(self, embed_size, hidden_size, vocab_size, num_layers, dropout_prob):
+    def __init__(self, vocab_size):
         super().__init__()
-        self.embed_size = embed_size
-        self.hidden_size = hidden_size
+        self.embed_size = 300
+        self.hidden_size = 512
         self.vocab_size = vocab_size
-        self.num_layers = num_layers
-        self.dropout_prob = dropout_prob
+        self.num_layers = 1
+        self.dropout_prob = 0.1
 
         self.embedding = nn.Embedding(self.vocab_size, self.embed_size)
         self.lstm = nn.LSTM(input_size=self.embed_size, hidden_size=self.hidden_size,
                           num_layers=self.num_layers, batch_first=True, dropout=self.dropout_prob)
         self.fc = nn.Linear(self.hidden_size, self.vocab_size)
+        
+        self.Linear_unit = nn.Linear(self.vocab_size, 300)
+        self.Gelu = nn.GELU()
+        self.Dense_unit = nn.Linear(300, 300)
+        self.dropout = nn.Dropout(0.1)
+        self.layer_norm = nn.LayerNorm(300)
         self.init_weights(self.fc)
 
     def init_weights(self, m):
@@ -51,7 +75,19 @@ class LSTMEncoder(nn.Module):
         torch.nn.init.normal_(m.bias.data)
 
     def forward(self, input_ids):
+        
+        
         embedded_captions = self.embedding(input_ids)
         hidden_outputs, _ = self.lstm(embedded_captions)
+        hidden_outputs = hidden_outputs[:, -1, :]
         outputs = self.fc(hidden_outputs)
-        return outputs
+        
+        embed_proj = self.Linear_unit(outputs)
+        
+        x = self.Gelu(embed_proj)
+        x = self.Dense_unit(x)
+        x = self.dropout(x)
+        x = torch.add(embed_proj, x)
+        embed_proj = self.layer_norm(x)
+        
+        return embed_proj

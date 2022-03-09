@@ -105,3 +105,4 @@ def collate_fn(data):
         end = lengths[i]
         targets[i, :end] = cap[:end]
     return images, targets, img_ids
+
