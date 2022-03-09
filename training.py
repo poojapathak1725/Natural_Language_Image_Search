@@ -104,20 +104,21 @@ class Training(object):
 
         val_loss = 0
         
-        for iter, (images, captions, img_ids) in enumerate(self.val_loader):
+        with torch.no_grad():
+            for iter, (images, captions, img_ids) in enumerate(self.val_loader):
 
-            if torch.cuda.is_available():
-                images = images.cuda()
-                captions = captions.cuda()
-            
-            
-            targets, predictions = self.dual_encoder(images, captions)
-            loss = self.criterion(predictions, targets)
-            
-            val_loss += loss.item()
-            
-            if iter == 49:
-                break
+                if torch.cuda.is_available():
+                    images = images.cuda()
+                    captions = captions.cuda()
+                
+                
+                targets, predictions = self.dual_encoder(images, captions)
+                loss = self.criterion(predictions, targets)
+                
+                val_loss += loss.item()
+                
+                if iter == 49:
+                    break
         
         val_loss = val_loss / 50
                 
