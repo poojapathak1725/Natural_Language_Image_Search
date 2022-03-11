@@ -12,7 +12,10 @@ import numpy as np
 import nltk
 from PIL import Image
 from pycocotools.coco import COCO
+import torch.nn as nn
+from transformers import BertTokenizer
 
+# tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
@@ -64,6 +67,8 @@ class CocoDataset(data.Dataset):
         caption = [vocab('<start>')]
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab('<end>'))
+
+#         caption = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(caption))
         target = torch.Tensor(caption)
 #         import pdb; pdb.set_trace();
         return image, target, img_id
@@ -100,6 +105,7 @@ def collate_fn(data):
     # Merge captions (from tuple of 1D tensor to 2D tensor).
     lengths = [len(cap) for cap in captions]
     targets = torch.zeros(len(captions), max(lengths)).long()
+    # targets = torch.empty(len(captions), max(lengths)).fill_(tokenizer.pad_token_id).long()
 #     import pdb; pdb.set_trace();
     for i, cap in enumerate(captions):
         end = lengths[i]

@@ -6,9 +6,9 @@ import torch
 import torch.nn.functional as F
 
 class DualEncoder(nn.Module):
-    def __init__(self, configs) -> None:
+    def __init__(self, configs, vocab_size) -> None:
         super().__init__()
-        self.text_encoder = BERTEncoder()
+        self.text_encoder = BERTEncoder(vocab_size)
         self.image_encoder = CNNEncoder()
         self.softmax = nn.Softmax(dim = -1)
 
