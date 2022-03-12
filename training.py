@@ -173,8 +173,6 @@ class Training(object):
 #         pdb.set_trace()
         indices = indices.cpu().detach().numpy()
         
-        root = os.path.join("./", "answers/")
-        
         for idx in indices[0]:
             img = image_array[idx].cpu().numpy().transpose(1, 2, 0)
             img = img * np.array((0.229, 0.224, 0.225)) + np.array((0.485, 0.456, 0.406))
