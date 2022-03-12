@@ -6,25 +6,31 @@ import torch
 import torch.nn.functional as F
 
 class DualEncoder(nn.Module):
-    def __init__(self, configs) -> None:
+    def __init__(self, configs, vocab_size) -> None:
         super().__init__()
-        self.text_encoder = BERTEncoder()
+        self.text_encoder = LSTMEncoder(vocab_size)
         self.image_encoder = CNNEncoder()
         self.softmax = nn.Softmax(dim = -1)
+        self.logit_scale = torch.ones([]) * 2.6592
+        
 
     def forward(self, images, captions):
         
         encoded_images = self.image_encoder(images)
         encoded_text = self.text_encoder(captions)
         
-#         import pdb; pdb.set_trace();
+        
+        normalized_images = encoded_images / encoded_images.norm(dim=-1, keepdim=True)
+        normalized_text = encoded_text / encoded_text.norm(dim=-1, keepdim=True)
 
-        image_similarity = torch.matmul(encoded_images, torch.transpose(encoded_images, 0, 1))
-        
-        caption_similarity = torch.matmul(encoded_text, torch.transpose(encoded_text, 0, 1))
-        
-        targets = self.softmax((caption_similarity+image_similarity)/2.0)
-        
-        logits = torch.matmul(encoded_text, torch.transpose(encoded_images, 0, 1))
+#         normalized_images = encoded_images
+#         normalized_text = encoded_text
 
-        return targets, logits
+        # cosine similarity as logits
+        logits_per_text = torch.matmul(normalized_text, torch.transpose(normalized_images, 0, 1)) * self.logit_scale.exp()
+        logits_per_image = torch.transpose(logits_per_text, 0, 1)
+        
+                                        
+        return logits_per_text, logits_per_image
+#         return normalized_images, normalized_text
+        

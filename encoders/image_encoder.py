@@ -24,11 +24,12 @@ class CNNEncoder(nn.Module):
 #         resnet_outputs = Variable(resnet_outputs.data)
 #         resnet_outputs = resnet_outputs.view(resnet_outputs.size(0), -1)
 
-        x = self.Relu(resnet_outputs)
-        x = self.Dense_unit(x)
-#         x = self.dropout(x)
-        x = add(resnet_outputs, x)
-        embed_proj = self.layer_norm(x)
-        return embed_proj
+#         x = self.Relu(resnet_outputs)
+#         x = self.Dense_unit(x)
+# #         x = self.dropout(x)
+#         x = add(resnet_outputs, x)
+#         embed_proj = self.layer_norm(x)
+        return resnet_outputs
         
 #         return embed_proj
+

@@ -2,14 +2,16 @@ import torch
 import torch.nn as nn
 from transformers import BertConfig, BertModel, BertTokenizer
 
+
 class BERTEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size):
         super().__init__()
 
-        src_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+#         self.src_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.vocab_size = vocab_size
 
-        encoder_config = BertConfig(vocab_size=src_tokenizer.vocab_size,
-                                    hidden_size=256,
+        encoder_config = BertConfig(vocab_size=self.vocab_size,
+                                    hidden_size=512,
                                     num_hidden_layers=1,
                                     num_attention_heads=1,
                                     intermediate_size=512,
@@ -22,21 +24,18 @@ class BERTEncoder(nn.Module):
                                     layer_norm_eps=1e-12,
                                     is_decoder=False)
 
-        encoder_embeddings = torch.nn.Embedding(src_tokenizer.vocab_size, 256, padding_idx=src_tokenizer.pad_token_id)
+        encoder_embeddings = torch.nn.Embedding(self.vocab_size, 512, padding_idx=0)
         self.encoder = BertModel(encoder_config)
         self.encoder.set_input_embeddings(encoder_embeddings)
         
-        self.Linear_unit = nn.Linear(256, 300)
+        self.Linear_unit = nn.Linear(512, 300)
         self.Gelu = nn.GELU()
         self.Dense_unit = nn.Linear(300, 300)
         self.dropout = nn.Dropout(0.1)
         self.layer_norm = nn.LayerNorm(300)
 
     def forward(self, encoder_input_ids):
-        encoder_hidden_states = self.encoder(encoder_input_ids)[1]
-        
-#         import pdb; pdb.set_trace();
-        
+        encoder_hidden_states = self.encoder(encoder_input_ids)[1]       
         embed_proj = self.Linear_unit(encoder_hidden_states)
         
         x = self.Gelu(embed_proj)
@@ -85,10 +84,10 @@ class LSTMEncoder(nn.Module):
         
 #         embed_proj = self.Linear_unit(outputs)
         
-        x = self.Relu(outputs)
-#         x = self.Dense_unit(x)
+#         x = self.Relu(embed_proj)
+# #         x = self.Dense_unit(x)
 #         x = self.dropout(x)
 #         x = torch.add(embed_proj, x)
 #         embed_proj = self.layer_norm(x)
         
-        return x
+        return outputs
