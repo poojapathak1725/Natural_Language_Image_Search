@@ -15,7 +15,7 @@ from pycocotools.coco import COCO
 import torch.nn as nn
 from transformers import BertTokenizer
 
-# tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
@@ -62,13 +62,13 @@ class CocoDataset(data.Dataset):
 #         image = self.transformations(image)
 
         # Convert caption (string) to word ids.
-        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
-        caption = [vocab(token) for token in tokens]
+#         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+#         caption = [vocab(token) for token in tokens]
 
 #         caption = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(caption))
-        target = torch.Tensor(caption)
-#         import pdb; pdb.set_trace();
-        return image, target, img_id
+#         output = tokenizer(caption, padding = True
+#         target = torch.Tensor(caption)
+        return image, caption, img_id
 
     def __len__(self):
         return len(self.ids)
@@ -95,12 +95,23 @@ def collate_fn(data):
     images, captions, img_ids = zip(*data)
     images = torch.stack(images, 0)
 
-    # Merge captions (from tuple of 1D tensor to 2D tensor).
-    lengths = [len(cap) for cap in captions]
-    targets = torch.zeros(len(captions), max(lengths)).long()
-    # targets = torch.empty(len(captions), max(lengths)).fill_(tokenizer.pad_token_id).long()
-#     import pdb; pdb.set_trace();
-    for i, cap in enumerate(captions):
-        end = lengths[i]
-        targets[i, :end] = cap[:end]
-    return images, targets, img_ids
+
+#     # Merge captions (from tuple of 1D tensor to 2D tensor).
+
+    output = tokenizer(captions, padding = True, truncation=True, return_tensors="pt")
+    
+    targets = output['input_ids']
+    attention_masks = output['attention_mask']
+    token_type_ids = output['token_type_ids']
+                            
+    
+#     lengths = [len(cap) for cap in captions]
+# #     targets = torch.zeros(len(captions), max(lengths)).long()
+
+#     targets = torch.empty(len(captions), max(lengths)).fill_(tokenizer.pad_token_id).long()
+# # #     import pdb; pdb.set_trace();
+#     for i, cap in enumerate(captions):
+#         end = lengths[i]
+#         targets[i, :end] = cap[:end]
+        
+    return images, targets, attention_masks, token_type_ids, img_ids

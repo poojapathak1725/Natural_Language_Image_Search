@@ -73,16 +73,17 @@ class Training(object):
             epoch_loss = 0
             start_time = time.time()
             
-            for iter, (images, captions, img_ids) in enumerate(self.train_loader):
+            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
 
+                
                 if torch.cuda.is_available():
                     images = images.cuda()
                     captions = captions.cuda()
-                    
-#                 pdb.set_trace()
+                    attention_masks = attention_masks.cuda()
+                    token_type_ids = token_type_ids.cuda()
                 
-                text_pred, image_pred = self.dual_encoder(images, captions)
+                text_pred, image_pred = self.dual_encoder(images, captions, attention_masks, token_type_ids)
                 
                 loss = self.criterion(text_pred, image_pred)
 
@@ -101,7 +102,8 @@ class Training(object):
                 if iter % 10 == 0:
                     print("epoch{}, iter{}, loss: {}".format(epoch, iter, loss.item()))
             
-            torch.cuda.empty_cache()
+                torch.cuda.empty_cache()
+                gc.collect()
       
   
             print("Finished epoch {}, time elapsed {}, Average Loss {}".format(
@@ -115,8 +117,8 @@ class Training(object):
 #                                  len(self.train_loader))
             val_loss.append(self.val(epoch))
             
-        self.best_text_path = os.path.join("./", 'best-text-model.pt')
-        self.best_image_path = os.path.join("./", 'best-image-model.pt')
+        self.best_text_path = os.path.join("./", 'best-text-model-bert.pt')
+        self.best_image_path = os.path.join("./", 'best-image-model-bert.pt')
         
         torch.save(self.dual_encoder.text_encoder, self.best_text_path)
         torch.save(self.dual_encoder.image_encoder, self.best_image_path)
@@ -129,14 +131,16 @@ class Training(object):
         val_loss = 0
         
         with torch.no_grad():
-            for iter, (images, captions, img_ids) in enumerate(self.val_loader):
+            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.val_loader): 
 
                 if torch.cuda.is_available():
                     images = images.cuda()
                     captions = captions.cuda()
+                    attention_masks = attention_masks.cuda()
+                    token_type_ids = token_type_ids.cuda()
                 
                 
-                logits_per_text, logits_per_image = self.dual_encoder(images, captions)
+                logits_per_text, logits_per_image = self.dual_encoder(images, captions, attention_masks, token_type_ids)
                 loss = self.criterion(logits_per_text, logits_per_image)
                 
                 val_loss += loss.item()
@@ -151,6 +155,10 @@ class Training(object):
         torch.cuda.empty_cache() 
             
         return val_loss
+    
+    def bert_tokenize(self, query):
+        encoding = self.dual_encosder.text_encoder.tokenizer(query)
+        return encoding['input_ids'], encoding['attention_mask'], encoding['token_type_ids']
            
     def tokenize_query(self, query):
         tokens = nltk.tokenize.word_tokenize(str(query).lower())
@@ -159,11 +167,17 @@ class Training(object):
         
     
     def find_images(self, image_embeddings, query, image_paths, image_array, k=7, normalize = True):
-#         query = self.dual_encoder.text_encoder.src_tokenizer.encode(query)
-#         tokenizer = self.dual_encoder.text_encoder.src_tokenizer
-#         query = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(query))
-        query = self.tokenize_query(query)
-        query_embedding = self.dual_encoder.text_encoder(torch.as_tensor([query]).cuda())
+        
+        captions, attention, token_type = self.bert_tokenize(query)
+        
+        if torch.cuda.is_available():
+            captions = captions.cuda()
+            attention = attention.cuda()
+            token_type = token_type.cuda()
+
+        query_embedding = self.dual_encoder.text_encoder(captions, attention, token_type)
+        
+        
         if normalize:
             image_embeddings = torch.nn.functional.normalize(image_embeddings, p=2, dim=1)
             query_embedding = torch.nn.functional.normalize(query_embedding, p=2, dim=1)
@@ -172,6 +186,8 @@ class Training(object):
         
 #         pdb.set_trace()
         indices = indices.cpu().detach().numpy()
+        
+        root = os.path.join("./", "answers/")
         
         for idx in indices[0]:
             img = image_array[idx].cpu().numpy().transpose(1, 2, 0)
@@ -189,8 +205,8 @@ class Training(object):
         return image_paths
 
     def load_model(self):
-        self.dual_encoder.text_encoder = torch.load("best-text-model.pt")
-        self.dual_encoder.image_encoder = torch.load("best-image-model.pt")
+        self.dual_encoder.text_encoder = torch.load("best-text-model-bert.pt")
+        self.dual_encoder.image_encoder = torch.load("best-image-model-bert.pt")
     
     def test(self, query):
         torch.cuda.empty_cache()
@@ -198,7 +214,7 @@ class Training(object):
         self.dual_encoder.eval()
         image_arrays = None
         with torch.no_grad():
-            for iter, (images, _, img_ids) in enumerate(self.test_loader):
+            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.test_loader):
                 if iter == 8:
                     break
                 if torch.cuda.is_available():
@@ -229,16 +245,16 @@ class Training(object):
         plt.xlabel('Epoch')
         plt.legend()
         plt.title("Train and Val Loss v.s. Epochs")
-        plt.savefig('graph_1.png')
+        plt.savefig('graph_2.png')
         plt.show()
 
 if __name__ == "__main__":
     
     training_class = Training("config_data")
-#     training_loss, val_loss = training_class.train()
-#     training_class.plot_train_loss(training_loss, val_loss)
+    training_loss, val_loss = training_class.train()
+    training_class.plot_train_loss(training_loss, val_loss)
 
-    training_class.test("a man on a surfboard in the sea")
+    training_class.test("a tall building on a street")
     
     # housekeeping
     gc.collect() 
