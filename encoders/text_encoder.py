@@ -9,7 +9,7 @@ class BERTModel(nn.Module):
         
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.model = BertModel.from_pretrained("bert-base-uncased")
-        self.out = nn.Linear(self.model.config.hidden_size, 300)
+        self.out = nn.Linear(self.model.config.hidden_size, 600)
 
     
     def forward(self, text_data, attention_masks, token_type_ids):
@@ -25,40 +25,40 @@ class BERTModel(nn.Module):
     
 
 
-# class BERTEncoder(nn.Module):
-#     def __init__(self, vocab_size):
-#         super().__init__()
+class BERTEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
 
-# #         self.src_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.src_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 #         self.vocab_size = vocab_size
 
-#         encoder_config = BertConfig(vocab_size=self.vocab_size,
-#                                     hidden_size=512,
-#                                     num_hidden_layers=1,
-#                                     num_attention_heads=1,
-#                                     intermediate_size=512,
-#                                     hidden_act="gelu",
-#                                     hidden_dropout_prob=0.1,
-#                                     attention_probs_dropout_prob=0.1,
-#                                     max_position_embeddings=512,
-#                                     type_vocab_size=2,
-#                                     initializer_range=0.02,
-#                                     layer_norm_eps=1e-12,
-#                                     is_decoder=False)
+        encoder_config = BertConfig(vocab_size=self.src_tokenizer.vocab_size,
+                                    hidden_size=512,
+                                    num_hidden_layers=1,
+                                    num_attention_heads=1,
+                                    intermediate_size=512,
+                                    hidden_act="gelu",
+                                    hidden_dropout_prob=0.1,
+                                    attention_probs_dropout_prob=0.1,
+                                    max_position_embeddings=512,
+                                    type_vocab_size=2,
+                                    initializer_range=0.02,
+                                    layer_norm_eps=1e-12,
+                                    is_decoder=False)
 
-#         encoder_embeddings = torch.nn.Embedding(self.vocab_size, 512, padding_idx=0)
-#         self.encoder = BertModel(encoder_config)
-#         self.encoder.set_input_embeddings(encoder_embeddings)
+        encoder_embeddings = torch.nn.Embedding(self.src_tokenizer.vocab_size, 512, padding_idx=0)
+        self.encoder = BertModel(encoder_config)
+        self.encoder.set_input_embeddings(encoder_embeddings)
         
-#         self.Linear_unit = nn.Linear(512, 300)
-#         self.Gelu = nn.GELU()
-#         self.Dense_unit = nn.Linear(300, 300)
-#         self.dropout = nn.Dropout(0.1)
-#         self.layer_norm = nn.LayerNorm(300)
+        self.Linear_unit = nn.Linear(512, 300)
+        self.Gelu = nn.GELU()
+        self.Dense_unit = nn.Linear(300, 300)
+        self.dropout = nn.Dropout(0.1)
+        self.layer_norm = nn.LayerNorm(300)
 
-#     def forward(self, encoder_input_ids):
-#         encoder_hidden_states = self.encoder(encoder_input_ids)[1]       
-#         embed_proj = self.Linear_unit(encoder_hidden_states)
+    def forward(self, encoder_input_ids):
+        encoder_hidden_states = self.encoder(encoder_input_ids)[1]       
+        embed_proj = self.Linear_unit(encoder_hidden_states)
         
 #         x = self.Gelu(embed_proj)
 #         x = self.Dense_unit(x)

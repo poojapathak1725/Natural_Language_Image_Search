@@ -73,27 +73,19 @@ class Training(object):
             epoch_loss = 0
             start_time = time.time()
             
-            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.train_loader):
+            for iter, (images, captions, img_ids) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
 
-                
                 if torch.cuda.is_available():
                     images = images.cuda()
                     captions = captions.cuda()
-                    attention_masks = attention_masks.cuda()
-                    token_type_ids = token_type_ids.cuda()
                 
-                text_pred, image_pred = self.dual_encoder(images, captions, attention_masks, token_type_ids)
+                text_pred, image_pred = self.dual_encoder(images, captions)
                 
                 loss = self.criterion(text_pred, image_pred)
-
                 epoch_loss += loss.item()
 
                 loss.backward()
-                
-#                 text_pred = text_pred.detach()
-#                 loss = loss.detach()
-
                 self.optimizer.step()
     
                 if iter == 899:
@@ -131,16 +123,13 @@ class Training(object):
         val_loss = 0
         
         with torch.no_grad():
-            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.val_loader): 
+            for iter, (images, captions, img_ids) in enumerate(self.val_loader): 
 
                 if torch.cuda.is_available():
                     images = images.cuda()
                     captions = captions.cuda()
-                    attention_masks = attention_masks.cuda()
-                    token_type_ids = token_type_ids.cuda()
                 
-                
-                logits_per_text, logits_per_image = self.dual_encoder(images, captions, attention_masks, token_type_ids)
+                logits_per_text, logits_per_image = self.dual_encoder(images, captions)
                 loss = self.criterion(logits_per_text, logits_per_image)
                 
                 val_loss += loss.item()
@@ -157,8 +146,8 @@ class Training(object):
         return val_loss
     
     def bert_tokenize(self, query):
-        encoding = self.dual_encosder.text_encoder.tokenizer(query)
-        return encoding['input_ids'], encoding['attention_mask'], encoding['token_type_ids']
+        caption = self.dual_encoder.text_encoder.src_tokenizer.convert_tokens_to_ids(tokenizer.tokenize(query))
+        return caption
            
     def tokenize_query(self, query):
         tokens = nltk.tokenize.word_tokenize(str(query).lower())
@@ -168,14 +157,12 @@ class Training(object):
     
     def find_images(self, image_embeddings, query, image_paths, image_array, k=7, normalize = True):
         
-        captions, attention, token_type = self.bert_tokenize(query)
+        captions = self.bert_tokenize(query)
         
         if torch.cuda.is_available():
             captions = captions.cuda()
-            attention = attention.cuda()
-            token_type = token_type.cuda()
 
-        query_embedding = self.dual_encoder.text_encoder(captions, attention, token_type)
+        query_embedding = self.dual_encoder.text_encoder(captions)
         
         
         if normalize:
@@ -212,23 +199,48 @@ class Training(object):
         torch.cuda.empty_cache()
         self.load_model()
         self.dual_encoder.eval()
-        image_arrays = None
+        self.image_array = None
+        image_embeddings = None
         with torch.no_grad():
-            for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.test_loader):
-                if iter == 8:
-                    break
+            for iter, (images, _, img_ids) in enumerate(self.test_loader):
+                if iter == 60: break
+                print("Embedding batch",iter)
                 if torch.cuda.is_available():
                     images = images.cuda()
-                if image_arrays == None:
-                    image_arrays = images
+                embeddings = self.dual_encoder.image_encoder(images)
+                if image_embeddings == None:
+                    image_embeddings = embeddings
+                    self.image_array = images
                     image_ids = img_ids
                 else:
-                    image_arrays = torch.cat((image_arrays,images),0)
+                    image_embeddings = torch.cat((image_embeddings,embeddings),0)
+                    self.image_array = torch.cat((self.image_array,images),0)
                     image_ids.extend(img_ids)
             image_paths = self.get_batch_image_paths(image_ids)
-            image_embeddings = self.dual_encoder.image_encoder(image_arrays)
-        matches = self.find_images(image_embeddings, query, image_paths, image_arrays, normalize=True)
-        print(matches)
+        matches = self.find_images(image_embeddings, query, image_paths, self.image_array, normalize=True)
+
+    
+#     def test(self, query):
+#         torch.cuda.empty_cache()
+#         self.load_model()
+#         self.dual_encoder.eval()
+#         image_arrays = None
+#         with torch.no_grad():
+#             for iter, (images, captions, attention_masks, token_type_ids, img_ids) in enumerate(self.test_loader):
+#                 if iter == 8:
+#                     break
+#                 if torch.cuda.is_available():
+#                     images = images.cuda()
+#                 if image_arrays == None:
+#                     image_arrays = images
+#                     image_ids = img_ids
+#                 else:
+#                     image_arrays = torch.cat((image_arrays,images),0)
+#                     image_ids.extend(img_ids)
+#             image_paths = self.get_batch_image_paths(image_ids)
+#             image_embeddings = self.dual_encoder.image_encoder(image_arrays)
+#         matches = self.find_images(image_embeddings, query, image_paths, image_arrays, normalize=True)
+    #         print(matches)
 
     
     def plot_train_loss(self, Training_Loss, Validation_Loss):
@@ -254,9 +266,8 @@ if __name__ == "__main__":
     training_loss, val_loss = training_class.train()
     training_class.plot_train_loss(training_loss, val_loss)
 
-    training_class.test("a tall building on a street")
+    training_class.test("a man walking on the beach with his surfboard")
     
     # housekeeping
     gc.collect() 
     torch.cuda.empty_cache()
-

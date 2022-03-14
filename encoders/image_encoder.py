@@ -32,4 +32,3 @@ class CNNEncoder(nn.Module):
         return resnet_outputs
         
 #         return embed_proj
-
