@@ -90,9 +90,6 @@ class Training(object):
                 epoch_loss += loss.item()
 
                 loss.backward()
-                
-#                 text_pred = text_pred.detach()
-#                 loss = loss.detach()
 
                 self.optimizer.step()
     
@@ -110,11 +107,9 @@ class Training(object):
                     epoch, 
                     (time.time() - start_time),
                     epoch_loss / 900
-#                 len(self.train_loader)
                 )
             )
             training_loss.append(epoch_loss / 900)
-#                                  len(self.train_loader))
             val_loss.append(self.val(epoch))
             
         self.best_text_path = os.path.join("./", 'best-text-model-bert.pt')
@@ -184,7 +179,6 @@ class Training(object):
         dot_similarity = torch.matmul(query_embedding, torch.transpose(image_embeddings, 0, 1))
         values, indices = torch.topk(dot_similarity,k)
         
-#         pdb.set_trace()
         indices = indices.cpu().detach().numpy()
         
         root = os.path.join("./", "answers/")
@@ -194,7 +188,6 @@ class Training(object):
             img = img * np.array((0.229, 0.224, 0.225)) + np.array((0.485, 0.456, 0.406))
             img *= 255.0
             im = Image.fromarray(img.astype(np.uint8))
-#             im.save(os.path.join(root, str(idx) + ".jpeg"))
             im.save(str(idx) + ".jpeg")
             
         return [[image_paths[idx] for idx in x] for x in indices]

@@ -23,14 +23,10 @@ class DualEncoder(nn.Module):
         normalized_images = encoded_images / encoded_images.norm(dim=-1, keepdim=True)
         normalized_text = encoded_text / encoded_text.norm(dim=-1, keepdim=True)
 
-#         normalized_images = encoded_images
-#         normalized_text = encoded_text
-
         # cosine similarity as logits
         logits_per_text = torch.matmul(normalized_text, torch.transpose(normalized_images, 0, 1)) * self.logit_scale.exp()
         logits_per_image = torch.transpose(logits_per_text, 0, 1)
         
                                         
         return logits_per_text, logits_per_image
-#         return normalized_images, normalized_text
         
